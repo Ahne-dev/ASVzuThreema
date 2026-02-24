@@ -120,7 +120,7 @@
                 <div>
                     <h1 class="text-3xl font-black text-white tracking-tight">ASV ➔ Threema Work</h1>
                     <div class="flex items-center gap-3 mt-2">
-                        <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-widest">GMS Goldberg Edition v12.5</span>
+                        <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-widest">GMS Goldberg Edition v12.6</span>
                         <div class="h-1.5 w-1.5 bg-slate-700 rounded-full"></div>
                         <span id="currentModeLabel" class="text-slate-500 font-bold text-[11px] uppercase tracking-widest">Modus: Schüler</span>
                     </div>
@@ -222,43 +222,38 @@
     <div id="printArea" class="hidden print-container"></div>
 
     <script>
-        // DOM-Elemente sicher laden
-        let fileInput, dropZone, previewContainer, actionButtons, printArea, classButtonsContainer, tableBody, countLabel, exportMenuContent, studentInputArea, teacherInputArea, tabStudent, tabTeacher, changeModal;
-
         let students = [];
         let classesMap = {};
         let appMode = 'student'; 
         let usedUsernames = new Set();
         const CHUNK_SIZE = 80;
 
+        // Sicherheits-Check für GitHub Pages: Lazy Element Fetcher
+        function getEl(id) {
+            const el = document.getElementById(id);
+            if (!el) {
+                console.error(`Kritischer Fehler: Element mit ID '${id}' nicht gefunden.`);
+                return null;
+            }
+            return el;
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
-            fileInput = document.getElementById('fileInput');
-            dropZone = document.getElementById('dropZone');
-            previewContainer = document.getElementById('previewContainer');
-            actionButtons = document.getElementById('actionButtons');
-            printArea = document.getElementById('printArea');
-            classButtonsContainer = document.getElementById('classButtons');
-            tableBody = document.getElementById('tableBody');
-            countLabel = document.getElementById('countLabel');
-            exportMenuContent = document.getElementById('exportMenuContent');
-            studentInputArea = document.getElementById('studentInputArea');
-            teacherInputArea = document.getElementById('teacherInputArea');
-            tabStudent = document.getElementById('tabStudent');
-            tabTeacher = document.getElementById('tabTeacher');
-            changeModal = document.getElementById('changeModal');
-
-            // Listeners initialisieren
-            if (dropZone) {
-                dropZone.onclick = () => fileInput.click();
-                dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
-                dropZone.ondragleave = () => dropZone.classList.remove('active');
-                dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); if(e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); };
-            }
-            if (fileInput) {
-                fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
+            const dz = getEl('dropZone');
+            const fi = getEl('fileInput');
+            
+            if (dz && fi) {
+                dz.onclick = () => fi.click();
+                dz.ondragover = (e) => { e.preventDefault(); dz.classList.add('active'); };
+                dz.ondragleave = () => dz.classList.remove('active');
+                dz.ondrop = (e) => { 
+                    e.preventDefault(); 
+                    dz.classList.remove('active'); 
+                    if(e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); 
+                };
+                fi.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
             }
 
-            // F5 Schutz
             window.addEventListener('beforeunload', (e) => {
                 if (students.length > 0) {
                     e.preventDefault();
@@ -282,36 +277,45 @@
             usedUsernames = new Set();
             classesMap = {};
             
-            tabStudent.classList.toggle('active', newMode === 'student');
-            tabTeacher.classList.toggle('active', newMode === 'teacher');
-            studentInputArea.classList.toggle('hidden', newMode !== 'student');
-            teacherInputArea.classList.toggle('hidden', newMode !== 'teacher');
-            previewContainer.classList.add('hidden');
-            actionButtons.classList.add('hidden');
-            
-            if(tableBody) tableBody.innerHTML = "";
-            if(countLabel) countLabel.innerText = "0";
-            if(fileInput) fileInput.value = "";
-            
-            const th = document.getElementById('thKlasse');
+            const ts = getEl('tabStudent');
+            const tt = getEl('tabTeacher');
+            const sia = getEl('studentInputArea');
+            const tia = getEl('teacherInputArea');
+            const pc = getEl('previewContainer');
+            const ab = getEl('actionButtons');
+            const tb = getEl('tableBody');
+            const cl = getEl('countLabel');
+            const th = getEl('thKlasse');
+            const ml = getEl('currentModeLabel');
+
+            if(ts) ts.classList.toggle('active', newMode === 'student');
+            if(tt) tt.classList.toggle('active', newMode === 'teacher');
+            if(sia) sia.classList.toggle('hidden', newMode !== 'student');
+            if(tia) tia.classList.toggle('hidden', newMode !== 'teacher');
+            if(pc) pc.classList.add('hidden');
+            if(ab) ab.classList.add('hidden');
+            if(tb) tb.innerHTML = "";
+            if(cl) cl.innerText = "0";
             if(th) th.innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
+            if(ml) ml.innerText = newMode === 'student' ? 'Modus: Schüler' : 'Modus: Lehrer';
             
-            const label = document.getElementById('currentModeLabel');
-            if(label) label.innerText = newMode === 'student' ? 'Modus: Schüler' : 'Modus: Lehrer';
+            const fi = getEl('fileInput');
+            if(fi) fi.value = "";
         }
 
         function showChangeModal(type, targetMode = null) {
-            if(!changeModal) return;
-            changeModal.style.display = 'flex';
-            const modalText = document.getElementById('modalText');
+            const cm = getEl('changeModal');
+            if(!cm) return;
+            cm.style.display = 'flex';
             
-            if (type === 'reset') {
-                modalText.innerText = "Die Liste wird geleert und alle Daten gehen verloren. Möchten Sie neu starten?";
-            } else {
-                modalText.innerText = "Beim Wechsel des Modus werden alle aktuellen Daten gelöscht. Fortfahren?";
+            const mt = getEl('modalText');
+            if(mt) {
+                mt.innerText = type === 'reset' 
+                    ? "Die Liste wird geleert und alle Daten gehen verloren. Möchten Sie neu starten?" 
+                    : "Beim Wechsel des Modus werden alle aktuellen Daten gelöscht. Fortfahren?";
             }
 
-            document.getElementById('confirmBtn').onclick = () => {
+            getEl('confirmBtn').onclick = () => {
                 closeModal();
                 if (type === 'reset') location.reload();
                 if (type === 'switch') executeSwitch(targetMode);
@@ -319,7 +323,8 @@
         }
 
         function closeModal() {
-            if(changeModal) changeModal.style.display = 'none';
+            const cm = getEl('changeModal');
+            if(cm) cm.style.display = 'none';
         }
 
         function handleFile(file) {
@@ -327,6 +332,9 @@
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
+                    if (typeof XLSX === 'undefined') {
+                        throw new Error("Skript-Bibliothek (XLSX) noch nicht geladen. Bitte Seite neu laden.");
+                    }
                     const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
@@ -335,7 +343,7 @@
                     alert("Kritischer Fehler beim Einlesen: " + err.message); 
                 }
             };
-            reader.onerror = () => alert("Die Datei konnte nicht gelesen werden.");
+            reader.onerror = () => alert("Die Datei konnte nicht gelesen werden (Dateizugriff verweigert).");
             reader.readAsArrayBuffer(file);
         }
 
@@ -343,18 +351,20 @@
             if(!data || data.length === 0) return;
             let idxVN = -1, idxNN = -1, idxKL = -1, headerIdx = -1;
             
-            for (let i = 0; i < Math.min(data.length, 25); i++) {
+            for (let i = 0; i < Math.min(data.length, 30); i++) {
+                if(!data[i]) continue;
                 const row = data[i].map(c => String(c || "").toLowerCase().trim());
-                idxVN = row.findIndex(x => ["vornamen", "vorname", "rufname"].some(k => x.includes(k)));
+                idxVN = row.findIndex(x => ["vornamen", "vorname", "rufname", "vorname(n)"].some(k => x.includes(k)));
                 idxNN = row.findIndex(x => ["familienname", "nachname", "name"].some(k => x.includes(k)));
-                idxKL = row.findIndex(x => ["klasse", "kl", "abteilung"].some(k => x.includes(k)));
+                idxKL = row.findIndex(x => ["klasse", "kl", "abteilung", "schulklasse"].some(k => x.includes(k)));
                 if (idxVN !== -1 && idxNN !== -1) { headerIdx = i; break; }
             }
 
-            if (headerIdx === -1) return alert("Erforderliche Spalten ('Vornamen' und 'Familienname') nicht gefunden. Bitte prüfen Sie die Excel-Datei.");
+            if (headerIdx === -1) return alert("Fehler: Spalten 'Vorname' und 'Nachname' nicht in den ersten 30 Zeilen gefunden. Bitte prüfen Sie die Excel-Struktur.");
 
             students = []; usedUsernames = new Set();
             for (let i = headerIdx + 1; i < data.length; i++) {
+                if(!data[i]) continue;
                 const vn = String(data[i][idxVN] || "").trim();
                 const nn = String(data[i][idxNN] || "").trim();
                 const kl = idxKL !== -1 ? String(data[i][idxKL] || "").trim() : "";
@@ -364,8 +374,10 @@
         }
 
         function addManualTeacher() {
-            const vnElem = document.getElementById('teacherVN');
-            const nnElem = document.getElementById('teacherNN');
+            const vnElem = getEl('teacherVN');
+            const nnElem = getEl('teacherNN');
+            if(!vnElem || !nnElem) return;
+            
             const vn = vnElem.value.trim();
             const nn = nnElem.value.trim();
             if (vn && nn) {
@@ -379,6 +391,7 @@
 
         function createPerson(vn, nn, kl) {
             let base = `${vn.substring(0,3).toLowerCase().replace(/\s/g, '')}.${nn.toLowerCase().replace(/\s+/g, '')}`;
+            base = base.replace(/[äöüß]/g, (m) => ({'ä':'ae','ö':'oe','ü':'ue','ß':'ss'}[m]));
             let user = base;
             let c = 1;
             while(usedUsernames.has(user)) { user = base + c; c++; }
@@ -392,12 +405,14 @@
                 else pass += abc.charAt(Math.floor(Math.random() * 24));
             }
 
-            return { vn, nn, kl, user, pass, id: `p-${Date.now()}-${Math.random()}`.replace(/\./g,''), type: appMode };
+            return { vn, nn, kl, user, pass, id: `p${Date.now()}${Math.floor(Math.random()*1000)}`, type: appMode };
         }
 
         function updateUI() {
-            if(!tableBody) return;
-            tableBody.innerHTML = "";
+            const tb = getEl('tableBody');
+            if(!tb) return;
+            
+            tb.innerHTML = "";
             classesMap = {};
             
             students.forEach((s, idx) => {
@@ -411,46 +426,53 @@
                     <td class="px-6 py-3 text-center text-slate-500 font-mono text-xs">${idx + 1}</td>
                     <td class="px-8 py-3 font-bold text-emerald-400 font-mono">${s.user}</td>
                     <td class="px-8 py-3 text-white font-medium">${s.vn} ${s.nn}</td>
-                    <td class="px-8 py-3 text-slate-500">${s.type==='student' ? (s.kl || '-') : 'Lehrkraft'}</td>
+                    <td class="px-8 py-3 text-slate-500">${s.kl || (s.type === 'teacher' ? 'Lehrkraft' : '-')}</td>
                     <td class="px-6 py-3 no-print text-center">
-                        <button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400 transition-colors">
+                        <button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400 transition-colors p-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                         </button>
                     </td>`;
-                tableBody.appendChild(tr);
+                tb.appendChild(tr);
             });
 
-            // Klassen-Buttons
-            if(classButtonsContainer) {
-                classButtonsContainer.innerHTML = "";
+            const cbc = getEl('classButtons');
+            if(cbc) {
+                cbc.innerHTML = "";
                 if (appMode === 'student') {
                     Object.keys(classesMap).sort().forEach(kl => {
                         const btn = document.createElement('button');
                         btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 transition-all";
                         btn.innerHTML = kl;
                         btn.onclick = () => printClass(kl);
-                        classButtonsContainer.appendChild(btn);
+                        cbc.appendChild(btn);
                     });
                 }
             }
 
-            // Export Menü
-            if(exportMenuContent) {
-                exportMenuContent.innerHTML = `<button onclick="printAll()" class="w-full text-left px-6 py-4 text-sm font-bold hover:bg-indigo-600/10 text-indigo-100 border-b border-slate-700/50 transition-colors">Alle Briefe drucken</button>`;
+            const emc = getEl('exportMenuContent');
+            if(emc) {
+                emc.innerHTML = `<button onclick="printAll()" class="w-full text-left px-6 py-4 text-sm font-bold hover:bg-indigo-600/10 text-indigo-100 border-b border-slate-700/50 transition-colors">Alle Briefe drucken</button>`;
                 for (let i = 0; i < students.length; i += CHUNK_SIZE) {
                     const end = Math.min(i + CHUNK_SIZE, students.length);
                     const btn = document.createElement('button');
                     btn.className = "w-full text-left px-6 py-4 text-sm hover:bg-emerald-600/10 text-emerald-100 border-b border-slate-700/50 last:border-0 transition-colors";
                     btn.innerText = `CSV-Importliste ${Math.floor(i/CHUNK_SIZE)+1} (${i+1}-${end})`;
                     btn.onclick = () => downloadCSV(i, end);
-                    exportMenuContent.appendChild(btn);
+                    emc.appendChild(btn);
                 }
             }
 
-            if(countLabel) countLabel.innerText = students.length;
-            if(previewContainer) previewContainer.classList.toggle('hidden', students.length === 0);
-            if(actionButtons) actionButtons.classList.toggle('hidden', students.length === 0);
-            if (appMode === 'student' && students.length > 0 && studentInputArea) studentInputArea.classList.add('hidden');
+            const cl = getEl('countLabel');
+            if(cl) cl.innerText = students.length;
+            
+            const pc = getEl('previewContainer');
+            if(pc) pc.classList.toggle('hidden', students.length === 0);
+            
+            const ab = getEl('actionButtons');
+            if(ab) ab.classList.toggle('hidden', students.length === 0);
+            
+            const sia = getEl('studentInputArea');
+            if (appMode === 'student' && students.length > 0 && sia) sia.classList.add('hidden');
         }
 
         function generateLetterHTML(s) {
@@ -477,7 +499,7 @@
                         <table class="cred-table">
                             <tr><td class="cred-label">Vorname:</td><td>${s.vn}</td></tr>
                             <tr><td class="cred-label">Nachname:</td><td>${s.nn}</td></tr>
-                            ${isT ? '' : `<tr><td class="cred-label">Klasse:</td><td>${s.kl}</td></tr>`}
+                            ${isT ? '' : `<tr><td class="cred-label">Klasse:</td><td>${s.kl || '-'}</td></tr>`}
                             <tr style="border-top: 2px solid black;"><td class="cred-label">Benutzername:</td><td><strong>${s.user}</strong></td></tr>
                             <tr><td class="cred-label">Passwort:</td><td><strong>${s.pass}</strong></td></tr>
                         </table>
@@ -523,21 +545,27 @@
         }
 
         function printAll() {
-            if(!printArea) return;
-            printArea.innerHTML = "";
-            students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            const pa = getEl('printArea');
+            if(!pa) return;
+            pa.innerHTML = "";
+            students.forEach(s => pa.innerHTML += generateLetterHTML(s));
             processQRCodes(students);
         }
 
         function printClass(kl) {
-            if(!printArea) return;
+            const pa = getEl('printArea');
+            if(!pa || !classesMap[kl]) return;
             const list = classesMap[kl];
-            printArea.innerHTML = "";
-            list.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            pa.innerHTML = "";
+            list.forEach(s => pa.innerHTML += generateLetterHTML(s));
             processQRCodes(list);
         }
 
         function processQRCodes(list) {
+            if (typeof QRious === 'undefined') {
+                alert("Fehler: QR-Code Bibliothek nicht verfügbar. Bitte Seite neu laden.");
+                return;
+            }
             setTimeout(() => {
                 try {
                     list.forEach(s => {
@@ -552,7 +580,7 @@
                 } catch (e) {
                     alert("Fehler beim Generieren der QR-Codes: " + e.message);
                 }
-            }, 300);
+            }, 500);
         }
 
         function removePerson(idx) { 
@@ -565,7 +593,7 @@
                 let csv = "\uFEFFBenutzername,Passwort,Vorname,Nachname,Mitarbeiternummer,Berufsbezeichnung,Abteilung,E-Mail für App-Aktivierungslink,Tags\n";
                 students.slice(start, end).forEach(s => {
                     const isT = s.type === 'teacher';
-                    csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT?'Lehrkraft':'Lernende'}","${isT?'':s.kl}","","${isT?'Lehrende':'SuS'}"\n`;
+                    csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT?'Lehrkraft':'Lernende'}","${s.kl || ''}","","${isT?'Lehrende':'SuS'}"\n`;
                 });
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
                 const a = document.createElement('a'); 
