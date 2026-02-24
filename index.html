@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         
         body { 
             font-family: 'Inter', sans-serif; 
@@ -23,7 +23,7 @@
             border: 1px solid rgba(51, 65, 85, 0.5);
         }
 
-        /* PRINT SETTINGS */
+        /* PRINT SETTINGS - Streng S/W, Exakt 2 Seiten */
         @media print {
             @page { 
                 size: A4 portrait; 
@@ -37,7 +37,7 @@
             .letter-page { 
                 width: 210mm; 
                 height: 296.5mm; 
-                padding: 15mm 20mm; 
+                padding: 15mm 25mm; 
                 margin: 0 !important; 
                 page-break-after: always; 
                 box-sizing: border-box;
@@ -55,47 +55,44 @@
                 color: black !important; 
                 background: transparent !important; 
             }
-            .hervorhebung { 
-                border: 2.5px solid black !important; 
-                padding: 12px !important; 
-                margin: 10px 0 !important; 
-                background: #f5f5f5 !important;
-            }
-            .logo-img { max-height: 50px; width: auto; display: block; }
         }
 
-        .drop-zone.active { border-color: #10b981; background-color: rgba(6, 78, 59, 0.2); }
+        /* Shared Letter Styles for Printing */
+        .letter-content { font-size: 10.5pt; line-height: 1.4; }
+        .header-table { width: 100%; border-bottom: 2px solid black; padding-bottom: 3mm; margin-bottom: 5mm; }
+        .logo-placeholder { border: 2.5px solid black; font-weight: 900; font-size: 9pt; text-align: center; width: 110px; height: 50px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; line-height: 1; }
         
-        .letter-page {
-            background: white;
-            color: black;
-            font-size: 10.5pt;
-            line-height: 1.35;
-            border: 1px solid #ddd;
-            margin: 20px auto;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-
-        .header-table { width: 100%; margin-bottom: 5mm; border-bottom: 1px solid black; padding-bottom: 2mm; }
-        .logo-box { min-width: 110px; height: 50px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .logo-placeholder { border: 1.5px solid black; font-weight: bold; font-size: 7.5pt; text-align: center; width: 110px; height: 50px; display: flex; align-items: center; justify-content: center; }
-        
-        .cred-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-        .cred-table td { padding: 4px 0; border-bottom: 1px solid #eee; }
-        .cred-label { font-weight: bold; width: 160px; }
+        .cred-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
+        .cred-table td { padding: 6px 0; border-bottom: 1px solid #eee; }
+        .cred-label { font-weight: 700; width: 180px; }
         
         .qr-wrap { display: flex; justify-content: space-around; margin: 15px 0; text-align: center; }
-        .qr-wrap canvas { width: 100px; height: 100px; border: 1px solid black; padding: 4px; }
+        .qr-wrap canvas, .qr-wrap img { width: 110px; height: 110px; border: 1px solid black; padding: 4px; }
 
-        .safe-box { border: 2.5px solid black; padding: 12px; margin-top: 15px; }
-        .input-line { border-bottom: 2px solid black; height: 26px; margin-top: 4px; width: 85%; }
+        .safe-box { border: 3px solid black; padding: 15px; margin-top: 10px; background: #f9f9f9; }
+        .input-line { border-bottom: 2px solid black; height: 28px; margin-top: 4px; width: 90%; }
 
+        .tab-btn { transition: all 0.3s ease; }
+        .tab-btn.active { background: #059669; color: white; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4); }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            padding-top: 0.5rem;
+            min-width: 280px;
+            z-index: 100;
+        }
+        .group:hover .dropdown-menu { display: block; }
+
+        /* Modal Styling */
         .modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(4px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -106,129 +103,118 @@
             border: 1px solid #334155;
             max-width: 440px;
             width: 100%;
-            border-radius: 1rem;
-            padding: 2rem;
+            border-radius: 1.5rem;
+            padding: 2.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-
-        .tab-btn { transition: all 0.2s ease; }
-        .tab-btn.active { color: white; background: #059669; }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            padding-top: 0.5rem;
-            min-width: 260px;
-            z-index: 100;
-        }
-        .group:hover .dropdown-menu { display: block; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="min-h-screen p-4 md:p-10">
 
     <div class="max-w-6xl mx-auto no-print">
-        <header class="mb-8 flex flex-col lg:flex-row justify-between items-center gap-6">
-            <div class="flex items-center gap-4">
-                <div class="bg-emerald-600 p-3 rounded-2xl shadow-lg">
-                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        <header class="mb-12 flex flex-col lg:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-6">
+                <div class="bg-emerald-600 p-4 rounded-3xl shadow-2xl shadow-emerald-900/40">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-extrabold text-white tracking-tight">ASV ➔ Threema Work</h1>
-                    <div class="flex items-center gap-2 mt-1">
-                        <span class="text-emerald-400 font-bold text-[10px] uppercase tracking-wider">GitHub Version</span>
-                        <div class="h-1 w-1 bg-slate-600 rounded-full"></div>
-                        <span id="currentModeLabel" class="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Modus: Schüler</span>
+                    <h1 class="text-3xl font-black text-white tracking-tight">ASV ➔ Threema Work</h1>
+                    <div class="flex items-center gap-3 mt-2">
+                        <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-widest">GMS Goldberg Edition v12.4</span>
+                        <div class="h-1.5 w-1.5 bg-slate-700 rounded-full"></div>
+                        <span id="currentModeLabel" class="text-slate-500 font-bold text-[11px] uppercase tracking-widest">Modus: Schüler</span>
                     </div>
                 </div>
             </div>
 
-            <div class="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
-                <button onclick="switchMode('student')" id="tabStudent" class="tab-btn active px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Schüler (ASV)</button>
-                <button onclick="switchMode('teacher')" id="tabTeacher" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Lehrer (Manuell)</button>
+            <div class="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <button onclick="switchMode('student')" id="tabStudent" class="tab-btn active px-6 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Schüler (ASV)</button>
+                <button onclick="switchMode('teacher')" id="tabTeacher" class="tab-btn px-6 py-2.5 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Lehrer (Manuell)</button>
             </div>
             
-            <div id="actionButtons" class="hidden flex items-center gap-2">
+            <div id="actionButtons" class="hidden flex items-center gap-3">
                 <div class="relative group">
-                    <button class="bg-indigo-700 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center transition-all shadow-lg border border-indigo-500/30">
+                    <button class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold flex items-center transition-all shadow-xl shadow-indigo-900/30">
                         Export & Druck
-                        <svg class="w-3 h-3 ml-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                     </button>
                     <div class="dropdown-menu">
-                        <div id="exportMenuContent" class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto"></div>
+                        <div id="exportMenuContent" class="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden ring-1 ring-black/5"></div>
                     </div>
                 </div>
-
-                <button onclick="showChangeModal('reset')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center transition-all border border-slate-700">
-                    Datei wechseln
-                </button>
+                <button onclick="showChangeModal('reset')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-6 py-3 rounded-xl font-bold border border-slate-700 transition-all">Neu starten</button>
             </div>
         </header>
 
-        <!-- Schüler Upload -->
+        <!-- Upload Bereich -->
         <div id="studentInputArea" class="block">
-            <div id="dropZone" class="glow-card rounded-3xl p-12 text-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-emerald-500 transition-all group">
+            <div id="dropZone" class="glow-card rounded-[3rem] p-20 text-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-emerald-500/50 transition-all group">
                 <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls, .csv">
                 <div class="flex flex-col items-center">
-                    <svg class="w-10 h-10 text-emerald-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
-                    <p class="text-xl font-bold text-white mb-1">ASV-Export laden</p>
-                    <p class="text-slate-400 text-xs">Excel oder CSV hierher ziehen</p>
+                    <div class="w-20 h-20 bg-slate-800 rounded-3xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                        <svg class="w-10 h-10 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    </div>
+                    <p class="text-2xl font-bold text-white mb-2">Excel-Datei laden</p>
+                    <p class="text-slate-500 text-sm">Klicken oder ASV-Export hierher ziehen</p>
                 </div>
             </div>
         </div>
 
-        <!-- Lehrer Manuell -->
+        <!-- Lehrer Bereich -->
         <div id="teacherInputArea" class="hidden">
-            <div class="glow-card rounded-3xl p-8 border border-slate-800 shadow-xl">
-                <h2 class="text-lg font-bold text-white mb-6">Lehrkraft manuell hinzufügen</h2>
-                <form onsubmit="event.preventDefault(); addManualTeacher();" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <input type="text" id="teacherVN" placeholder="Vorname" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-indigo-500">
-                    <input type="text" id="teacherNN" placeholder="Nachname" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-indigo-500">
-                    <div class="md:col-span-2 flex justify-end mt-4">
-                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl">Hinzufügen</button>
+            <div class="glow-card rounded-3xl p-10 border border-slate-800 shadow-2xl">
+                <h2 class="text-xl font-bold text-white mb-8">Lehrkraft manuell hinzufügen</h2>
+                <form onsubmit="event.preventDefault(); addManualTeacher();" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                    <input type="text" id="teacherVN" placeholder="Vorname" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 outline-none transition-all">
+                    <input type="text" id="teacherNN" placeholder="Nachname" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 outline-none transition-all">
+                    <div class="md:col-span-2 flex justify-end">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3.5 rounded-xl transition-all">Hinzufügen</button>
                     </div>
                 </form>
             </div>
         </div>
 
-        <!-- Preview -->
-        <div id="previewContainer" class="hidden mt-8 space-y-6">
-            <div id="classButtonsContainer" class="glow-card rounded-2xl p-6 border-l-4 border-l-indigo-500">
-                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Klassenweise drucken</h3>
-                <div id="classButtons" class="flex flex-wrap gap-2"></div>
+        <!-- Vorschau & Liste -->
+        <div id="previewContainer" class="hidden mt-12 space-y-10">
+            <div id="classButtonsContainer" class="glow-card rounded-3xl p-8 border-l-[6px] border-l-indigo-600">
+                <h3 class="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-6">Einzeldruck nach Klassen</h3>
+                <div id="classButtons" class="flex flex-wrap gap-3"></div>
             </div>
 
-            <div class="glow-card rounded-2xl border border-slate-800 overflow-hidden">
-                <div class="px-6 py-4 bg-slate-900/40 flex justify-between items-center">
-                    <h3 class="font-bold text-sm text-white">Datenvorschau (<span id="countLabel">0</span> Personen)</h3>
+            <!-- Tabelle -->
+            <div class="glow-card rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+                <div class="px-8 py-5 bg-slate-900/50 flex justify-between items-center border-b border-slate-800">
+                    <h3 class="font-bold text-white">Datenvorschau (<span id="countLabel">0</span>)</h3>
                 </div>
-                <div class="overflow-x-auto max-h-[450px]">
-                    <table class="w-full text-left text-xs">
-                        <thead class="bg-slate-950 text-slate-500 uppercase sticky top-0">
+                <div class="overflow-x-auto max-h-[600px]">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-950 text-slate-500 uppercase sticky top-0 z-20">
                             <tr>
-                                <th class="px-4 py-3 text-center">#</th>
-                                <th class="px-6 py-3">Username</th>
-                                <th class="px-6 py-3">Name</th>
-                                <th class="px-6 py-3" id="thKlasse">Klasse</th>
-                                <th class="px-6 py-3">Passwort</th>
-                                <th class="px-6 py-3 no-print">Aktion</th>
+                                <th class="px-6 py-4 text-center font-black">#</th>
+                                <th class="px-8 py-4 font-black">User</th>
+                                <th class="px-8 py-4 font-black">Name</th>
+                                <th class="px-8 py-4 font-black" id="thKlasse">Klasse</th>
+                                <th class="px-6 py-4 no-print text-center">Aktion</th>
                             </tr>
                         </thead>
-                        <tbody id="tableBody" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                        <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Sicherheits-Modal -->
     <div id="changeModal" class="modal-overlay">
         <div class="modal-content">
-            <h3 class="text-xl font-bold text-white mb-4">Daten wirklich löschen?</h3>
-            <p id="modalText" class="text-slate-400 text-sm mb-8">Alle bisher generierten Zugangsdaten gehen verloren.</p>
-            <div class="flex gap-3">
-                <button id="confirmBtn" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl">Ja, löschen</button>
-                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl">Abbrechen</button>
+            <div class="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+                <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-white mb-3">Daten verwerfen?</h3>
+            <p id="modalText" class="text-slate-400 text-sm mb-10 leading-relaxed">Alle aktuell geladenen Daten und Passwörter gehen verloren. Fortfahren?</p>
+            <div class="flex gap-4">
+                <button id="confirmBtn" class="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3.5 rounded-2xl transition-all shadow-lg">Ja, löschen</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-2xl transition-all">Abbrechen</button>
             </div>
         </div>
     </div>
@@ -242,7 +228,6 @@
         const actionButtons = document.getElementById('actionButtons');
         const printArea = document.getElementById('printArea');
         const classButtonsContainer = document.getElementById('classButtons');
-        const changeModal = document.getElementById('changeModal');
         const tableBody = document.getElementById('tableBody');
         const countLabel = document.getElementById('countLabel');
         const exportMenuContent = document.getElementById('exportMenuContent');
@@ -250,7 +235,7 @@
         const teacherInputArea = document.getElementById('teacherInputArea');
         const tabStudent = document.getElementById('tabStudent');
         const tabTeacher = document.getElementById('tabTeacher');
-        const currentModeLabel = document.getElementById('currentModeLabel');
+        const changeModal = document.getElementById('changeModal');
 
         let students = [];
         let classesMap = {};
@@ -258,37 +243,58 @@
         let usedUsernames = new Set();
         const CHUNK_SIZE = 80;
 
-        // UI Listeners
+        // Warnung vor dem Schließen/Aktualisieren (F5 Schutz)
+        window.addEventListener('beforeunload', (e) => {
+            if (students.length > 0) {
+                e.preventDefault();
+                e.returnValue = ''; // Standard für moderne Browser
+            }
+        });
+
+        // UI Handlers
         dropZone.onclick = () => fileInput.click();
         fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
         dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
         dropZone.ondragleave = () => dropZone.classList.remove('active');
-        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); e.dataTransfer.files.length > 0 && handleFile(e.dataTransfer.files[0]); };
+        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); handleFile(e.dataTransfer.files[0]); };
 
         function switchMode(newMode) {
-            if (appMode === newMode) return;
-            if (students.length > 0) showChangeModal('switch', newMode);
-            else executeSwitch(newMode);
+            if (appMode === newMode) return; // Schutz: Nichts tun wenn man auf den aktiven Tab klickt
+            
+            if (students.length > 0) {
+                showChangeModal('switch', newMode);
+            } else {
+                executeSwitch(newMode);
+            }
         }
 
         function executeSwitch(newMode) {
-            appMode = newMode; students = []; usedUsernames = new Set(); classesMap = {};
+            appMode = newMode;
+            students = [];
+            usedUsernames = new Set();
+            classesMap = {};
             tabStudent.classList.toggle('active', newMode === 'student');
             tabTeacher.classList.toggle('active', newMode === 'teacher');
             studentInputArea.classList.toggle('hidden', newMode !== 'student');
             teacherInputArea.classList.toggle('hidden', newMode !== 'teacher');
-            currentModeLabel.innerText = newMode === 'student' ? 'Modus: Schüler' : 'Modus: Lehrer';
-            document.getElementById('thKlasse').innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
-            if (newMode === 'student') studentInputArea.classList.remove('hidden');
             previewContainer.classList.add('hidden');
             actionButtons.classList.add('hidden');
             tableBody.innerHTML = "";
             countLabel.innerText = "0";
             fileInput.value = "";
+            document.getElementById('thKlasse').innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
         }
 
         function showChangeModal(type, targetMode = null) {
             changeModal.style.display = 'flex';
+            const modalText = document.getElementById('modalText');
+            
+            if (type === 'reset') {
+                modalText.innerText = "Die Liste wird geleert und alle Daten gehen verloren. Möchten Sie neu starten?";
+            } else {
+                modalText.innerText = "Beim Wechsel des Modus werden alle aktuellen Daten gelöscht. Fortfahren?";
+            }
+
             document.getElementById('confirmBtn').onclick = () => {
                 closeModal();
                 if (type === 'reset') location.reload();
@@ -296,217 +302,223 @@
             };
         }
 
-        function closeModal() { changeModal.style.display = 'none'; }
+        function closeModal() {
+            changeModal.style.display = 'none';
+        }
 
         function handleFile(file) {
-            if (!file) return;
             const reader = new FileReader();
-            const isExcel = /\.(xlsx|xls)$/i.test(file.name);
             reader.onload = (e) => {
-                let data;
                 try {
-                    if (isExcel) {
-                        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-                        data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
-                    } else {
-                        const content = e.target.result;
-                        const delimiter = content.includes(';') ? ';' : ',';
-                        data = content.split(/\r?\n/).filter(l => l.trim() !== "").map(l => l.split(delimiter).map(c => c.trim().replace(/"/g, '')));
-                    }
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
                     processData(data);
-                } catch (err) { alert("Fehler beim Laden."); }
+                } catch (err) { alert("Fehler beim Lesen der Excel-Datei."); }
             };
-            isExcel ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processData(data) {
+            let idxVN = -1, idxNN = -1, idxKL = -1, headerIdx = -1;
+            
+            for (let i = 0; i < Math.min(data.length, 20); i++) {
+                const row = data[i].map(c => String(c || "").toLowerCase().trim());
+                idxVN = row.findIndex(x => ["vornamen", "vorname", "rufname"].some(k => x.includes(k)));
+                idxNN = row.findIndex(x => ["familienname", "nachname", "name"].some(k => x.includes(k)));
+                idxKL = row.findIndex(x => ["klasse", "kl", "abteilung"].some(k => x.includes(k)));
+                if (idxVN !== -1 && idxNN !== -1) { headerIdx = i; break; }
+            }
+
+            if (headerIdx === -1) return alert("Spalten 'Vorname' und 'Nachname' nicht gefunden.");
+
+            students = []; usedUsernames = new Set();
+            for (let i = headerIdx + 1; i < data.length; i++) {
+                const vn = String(data[i][idxVN] || "").trim();
+                const nn = String(data[i][idxNN] || "").trim();
+                const kl = idxKL !== -1 ? String(data[i][idxKL] || "").trim() : "";
+                if (vn && nn) students.push(createPerson(vn, nn, kl));
+            }
+            updateUI();
         }
 
         function addManualTeacher() {
             const vn = document.getElementById('teacherVN').value.trim();
             const nn = document.getElementById('teacherNN').value.trim();
-            if (!vn || !nn) return;
-            students.push(createPersonObject(vn, nn, ""));
-            updatePreview();
-            document.getElementById('teacherVN').value = "";
-            document.getElementById('teacherNN').value = "";
-            document.getElementById('teacherVN').focus();
+            if (vn && nn) {
+                students.push(createPerson(vn, nn, ""));
+                updateUI();
+                document.getElementById('teacherVN').value = "";
+                document.getElementById('teacherNN').value = "";
+            }
         }
 
-        function createPersonObject(vn, nn, kl) {
-            let vnC = vn.replace(/\s+/g, '');
-            let nnC = nn.replace(/\s+/g, '');
-            let user = `${vnC.substring(0,3).toLowerCase()}.${nnC.toLowerCase()}`;
-            if (usedUsernames.has(user)) {
-                user = `${vnC.toLowerCase()}.${nnC.toLowerCase()}`;
-                if (usedUsernames.has(user)) {
-                    let c = 1; while(usedUsernames.has(user + c)) c++; user += c;
-                }
-            }
+        function createPerson(vn, nn, kl) {
+            let base = `${vn.substring(0,3).toLowerCase().replace(/\s/g, '')}.${nn.toLowerCase().replace(/\s+/g, '')}`;
+            let user = base;
+            let c = 1;
+            while(usedUsernames.has(user)) { user = base + c; c++; }
             usedUsernames.add(user);
-            let pass = ""; let nums = 0;
-            const alphabet = "abcdefghijkmnpqrstuvwxyz"; const zahlen = "123456789";
+
+            let pass = "";
+            const abc = "abcdefghijkmnpqrstuvwxyz"; 
+            const num = "123456789";
             for(let j=0; j<10; j++) {
-                if (Math.random() < 0.35 && nums < 3) { pass += zahlen.charAt(Math.floor(Math.random() * 9)); nums++; }
-                else { pass += alphabet.charAt(Math.floor(Math.random() * 24)); }
+                if (Math.random() < 0.35) pass += num.charAt(Math.floor(Math.random() * 9));
+                else pass += abc.charAt(Math.floor(Math.random() * 24));
             }
+
             return { vn, nn, kl, user, pass, id: `p-${Date.now()}-${Math.random()}`, type: appMode };
         }
 
-        function processData(data) {
-            if (!data || data.length < 2) return;
-            const h = data[0].map(x => String(x).toLowerCase());
-            const idxVN = h.findIndex(x => /vornamen|rufname/i.test(x));
-            const idxNN = h.findIndex(x => /familienname|nachname/i.test(x));
-            const idxKL = h.findIndex(x => /klasse/i.test(x));
-            if (idxVN === -1 || idxNN === -1) return alert("Spalten fehlen.");
-            students = []; usedUsernames = new Set();
-            for (let i = 1; i < data.length; i++) {
-                if (!data[i][idxVN] || !data[i][idxNN]) continue;
-                students.push(createPersonObject(String(data[i][idxVN]), String(data[i][idxNN]), idxKL !== -1 ? String(data[i][idxKL]) : ""));
-            }
-            updatePreview();
-        }
-
-        function updatePreview() {
-            tableBody.innerHTML = ""; classesMap = {};
-            const isS = appMode === 'student';
+        function updateUI() {
+            tableBody.innerHTML = "";
+            classesMap = {};
             students.forEach((s, idx) => {
                 if (s.kl) { if (!classesMap[s.kl]) classesMap[s.kl] = []; classesMap[s.kl].push(s); }
                 const tr = document.createElement('tr');
-                tr.className = "border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors";
-                tr.innerHTML = `
-                    <td class="px-4 py-2 text-center text-slate-500 font-mono">${idx + 1}</td>
-                    <td class="px-6 py-2 font-bold text-emerald-400 font-mono">${s.user}</td>
-                    <td class="px-6 py-2">${s.vn} ${s.nn}</td>
-                    <td class="px-6 py-2 text-slate-500">${isS ? (s.kl || '-') : 'Lehrkraft'}</td>
-                    <td class="px-6 py-2 font-mono text-[10px]">${s.pass}</td>
-                    <td class="px-6 py-2 no-print"><button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td>
-                `;
+                tr.className = "hover:bg-slate-800/30 transition-colors";
+                tr.innerHTML = `<td class="px-6 py-3 text-center text-slate-500 font-mono text-xs">${idx + 1}</td><td class="px-8 py-3 font-bold text-emerald-400 font-mono">${s.user}</td><td class="px-8 py-3 text-white font-medium">${s.vn} ${s.nn}</td><td class="px-8 py-3 text-slate-500">${s.type==='student' ? (s.kl || '-') : 'Lehrkraft'}</td><td class="px-6 py-3 no-print text-center"><button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td>`;
                 tableBody.appendChild(tr);
             });
 
-            classButtonsContainer.querySelector('#classButtons').innerHTML = "";
-            if (isS) {
-                document.getElementById('classButtonsContainer').classList.remove('hidden');
+            // Buttons
+            const btnWrap = document.getElementById('classButtons');
+            btnWrap.innerHTML = "";
+            if (appMode === 'student') {
                 Object.keys(classesMap).sort().forEach(kl => {
                     const btn = document.createElement('button');
-                    btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all";
-                    btn.innerHTML = `<svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h6a2 2 0 002 2v4a2 2 0 00-2 2z"></path></svg> ${kl}`;
-                    btn.onclick = () => printSpecificClass(kl);
-                    classButtonsContainer.querySelector('#classButtons').appendChild(btn);
+                    btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 transition-all";
+                    btn.innerHTML = kl;
+                    btn.onclick = () => printClass(kl);
+                    btnWrap.appendChild(btn);
                 });
-            } else classButtonsContainer.classList.add('hidden');
+            }
+
+            // Export Menu
+            exportMenuContent.innerHTML = `<button onclick="printAll()" class="w-full text-left px-6 py-4 text-sm font-bold hover:bg-indigo-600/10 text-indigo-100 border-b border-slate-700/50">Alle Briefe drucken</button>`;
+            for (let i = 0; i < students.length; i += CHUNK_SIZE) {
+                const end = Math.min(i + CHUNK_SIZE, students.length);
+                const btn = document.createElement('button');
+                btn.className = "w-full text-left px-6 py-4 text-sm hover:bg-emerald-600/10 text-emerald-100 border-b border-slate-700/50 last:border-0";
+                btn.innerText = `CSV Teil ${Math.floor(i/CHUNK_SIZE)+1} (${i+1}-${end})`;
+                btn.onclick = () => downloadCSV(i, end);
+                exportMenuContent.appendChild(btn);
+            }
 
             countLabel.innerText = students.length;
             previewContainer.classList.toggle('hidden', students.length === 0);
             actionButtons.classList.toggle('hidden', students.length === 0);
-            if (isS && students.length > 0) studentInputArea.classList.add('hidden');
-            
-            updateExportMenu();
-            printArea.innerHTML = "";
-            students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
-            setTimeout(() => students.forEach(s => renderQRs(s.id)), 100);
-        }
-
-        function updateExportMenu() {
-            exportMenuContent.innerHTML = "";
-            const printBtn = document.createElement('button');
-            printBtn.className = "w-full text-left px-5 py-3 text-sm hover:bg-blue-600/20 text-blue-100 border-b border-slate-700/50 flex items-center";
-            printBtn.innerHTML = `Alle Briefe drucken`;
-            printBtn.onclick = printAll;
-            exportMenuContent.appendChild(printBtn);
-
-            const csvHead = document.createElement('div');
-            csvHead.className = "px-5 py-2 bg-slate-900/50 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-700/50";
-            csvHead.innerText = "Threema Import-Listen (CSV)";
-            exportMenuContent.appendChild(csvHead);
-
-            if (students.length <= CHUNK_SIZE) {
-                exportMenuContent.appendChild(createCSVButton("Gesamt-CSV laden", 0, students.length));
-            } else {
-                for (let i = 0; i < students.length; i += CHUNK_SIZE) {
-                    const start = i + 1; const end = Math.min(i + CHUNK_SIZE, students.length);
-                    exportMenuContent.appendChild(createCSVButton(`Teil ${Math.floor(i / CHUNK_SIZE) + 1} (${start}-${end})`, i, end));
-                }
-            }
-        }
-
-        function createCSVButton(text, start, end) {
-            const btn = document.createElement('button');
-            btn.className = "w-full text-left px-5 py-3 text-sm hover:bg-emerald-600/20 text-emerald-100 border-b border-slate-700/50 last:border-0 flex items-center";
-            btn.innerHTML = text;
-            btn.onclick = () => downloadCSVChunk(start, end);
-            return btn;
-        }
-
-        function removePerson(index) {
-            const removed = students.splice(index, 1)[0];
-            usedUsernames.delete(removed.user);
-            updatePreview();
+            if (appMode === 'student' && students.length > 0) studentInputArea.classList.add('hidden');
         }
 
         function generateLetterHTML(s) {
             const isT = s.type === 'teacher';
             return `
-                <div class="letter-page" id="${s.id}-p1">
+                <div class="letter-page">
                     <table class="header-table">
                         <tr>
-                            <td style="font-size: 8pt;"><strong>GEMEINSCHAFTSSCHULE GOLDBERG</strong><br>Goldbergstraße 34, 71065 Sindelfingen</td>
-                            <td align="right">
+                            <td style="font-size: 8.5pt; line-height: 1.4;">
+                                <strong style="font-size: 10.5pt;">GEMEINSCHAFTSSCHULE GOLDBERG</strong><br>
+                                Goldbergstraße 34, 71065 Sindelfingen<br>
+                                <span style="font-weight: 600;">Tel.:</span> 07031-4103190 | <span style="font-weight: 600;">E-Mail:</span> poststelle@04121769.schule.bwl.de
+                            </td>
+                            <td align="right" valign="top">
                                 <div class="logo-box">
-                                    <img src="logo.png" class="logo-img" onerror="this.outerHTML='<div class=\'logo-placeholder\'>GMS GOLDBERG</div>'">
+                                    <img src="logo.png" style="max-height: 50px;" onerror="this.outerHTML='<div class=\'logo-placeholder\'>GMS<br>GOLDBERG</div>'">
                                 </div>
                             </td>
                         </tr>
                     </table>
-                    <p style="margin-top: 5mm;">Liebe ${isT ? 'Mitarbeitende, liebe Lehrende' : 'Lernende'},</p>
-                    <p>im Rahmen deiner Tätigkeit für die Schule erhältst du Zugriff auf <strong>Threema Work</strong>.</p>
-                    <div class="credentials-box" style="border: 2px solid black; padding: 15px; margin: 15px 0;">
+                    <p style="margin-top: 3mm; font-weight: 600; font-size: 11pt;">Liebe/r ${isT ? 'Mitarbeitende/r' : 'Lernende/r'},</p>
+                    <p style="margin-top: 2mm;">für deine schulische Kommunikation erhältst du hiermit Zugriff auf <strong>Threema Work</strong>.</p>
+                    <div style="border: 2.5px solid black; padding: 12px; margin: 10px 0; background: #fcfcfc;">
                         <table class="cred-table">
                             <tr><td class="cred-label">Vorname:</td><td>${s.vn}</td></tr>
                             <tr><td class="cred-label">Nachname:</td><td>${s.nn}</td></tr>
                             ${isT ? '' : `<tr><td class="cred-label">Klasse:</td><td>${s.kl}</td></tr>`}
-                            <tr style="border-top: 1.5px solid black;"><td class="cred-label">Benutzername:</td><td><strong>${s.user}</strong></td></tr>
+                            <tr style="border-top: 2px solid black;"><td class="cred-label">Benutzername:</td><td><strong>${s.user}</strong></td></tr>
                             <tr><td class="cred-label">Passwort:</td><td><strong>${s.pass}</strong></td></tr>
                         </table>
                     </div>
-                    <div class="qr-wrap"><div><canvas id="qr-and-${s.id}"></canvas><br><small>Android</small></div><div><canvas id="qr-ios-${s.id}"></canvas><br><small>iOS</small></div></div>
+                    <p style="text-align: center; font-size: 9pt; margin-top: 5mm;"><strong>INSTALLATION DER APP:</strong></p>
+                    <div class="qr-wrap">
+                        <div><canvas id="qr-and-${s.id}"></canvas><br><small><strong>Android</strong></small></div>
+                        <div><canvas id="qr-ios-${s.id}"></canvas><br><small><strong>iOS (iPhone)</strong></small></div>
+                    </div>
+                    <div style="margin-top: auto; font-size: 8pt; color: #666; border-top: 1px solid #eee; padding-top: 2mm;">
+                        Hinweis: Diese Zugangsdaten sind vertraulich. Bitte melde dich bei Erhalt sofort an.
+                    </div>
                 </div>
-                <div class="letter-page" id="${s.id}-p2">
-                    <table class="header-table"><tr><td><strong>GEMEINSCHAFTSSCHULE GOLDBERG</strong></td><td align="right">EINRICHTUNGSHILFE</td></tr></table>
-                    <h3 style="margin-top: 10mm; font-weight: bold;">Einrichtung von Threema Work:</h3>
-                    <ol style="margin-left: 20px; margin-top: 6mm;"><li>App öffnen und mit den Daten von Seite 1 anmelden.</li><li>Persönliche Threema ID erstellen.</li><li><strong>Threema Safe</strong> in den Einstellungen aktivieren!</li></ol>
-                    <div class="safe-box hervorhebung" style="background: #fafafa; border: 3px solid black; margin-top: 15mm; padding: 25px;">
-                        <strong>WICHTIG (NOTIEREN):</strong><br><br>Deine Threema ID:<br><div class="input-line"></div><br>Dein Threema Safe Passwort:<br><div class="input-line"></div>
+                <div class="letter-page">
+                    <table class="header-table">
+                        <tr><td><strong>GEMEINSCHAFTSSCHULE GOLDBERG</strong></td><td align="right">EINRICHTUNGSHILFE</td></tr>
+                    </table>
+                    <h3 style="margin-top: 5mm; font-weight: 800; font-size: 14pt;">Einrichtung von Threema Work:</h3>
+                    <ol style="margin-left: 20px; margin-top: 5mm; line-height: 1.6;">
+                        <li>App öffnen und mit den Daten von Seite 1 anmelden.</li>
+                        <li>Persönliche <strong>Threema ID</strong> erstellen.</li>
+                        <li><strong>Threema Safe</strong> in den Einstellungen aktivieren und Passwort notieren.</li>
+                    </ol>
+                    <div class="safe-box">
+                        <p style="font-weight: 800; text-decoration: underline; margin-bottom: 4mm;">WICHTIGE NOTIZEN:</p>
+                        Deine Threema ID:<br><div class="input-line"></div><br>
+                        Threema Safe Passwort:<br><div class="input-line"></div>
+                    </div>
+                    <div style="margin-top: 8mm; padding: 10px; border: 1.5px dashed black; font-size: 9.5pt;">
+                        <strong>Hinweis:</strong> Bewahre diesen Zettel sicher auf. Ohne deine ID und das Safe-Passwort kann dein Account bei Geräteverlust nicht wiederhergestellt werden!
+                    </div>
+                    
+                    <div style="margin-top: auto; padding-top: 5mm; border-top: 2px solid black; display: flex; align-items: center; gap: 25px;">
+                        <canvas id="qr-vid-${s.id}" style="width: 130px; height: 130px; border: 1.5px solid black; padding: 4px;"></canvas>
+                        <div style="font-size: 10pt; line-height: 1.4;">
+                            <strong style="text-transform: uppercase; font-size: 11pt;">Video-Anleitungen:</strong><br>
+                            Scanne diesen Code für Erklärvideos zur Einrichtung und Wiederherstellung auf unserer Webseite.<br>
+                            <span style="color: #000; font-weight: 700;">www.gms-goldberg.de/service/threema-work</span>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        function renderQRs(id) {
-            new QRious({ element: document.getElementById('qr-and-' + id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work&hl=de-AT&pli=1', size: 180 });
-            new QRious({ element: document.getElementById('qr-ios-' + id), value: 'https://apps.apple.com/de/app/threema-work-f%C3%BCr-unternehmen/id1105927783', size: 180 });
-        }
-
-        function printSpecificClass(kl) {
-            const list = classesMap[kl]; printArea.innerHTML = "";
-            list.forEach(s => printArea.innerHTML += generateLetterHTML(s));
-            setTimeout(() => { list.forEach(s => renderQRs(s.id)); window.print(); }, 100);
-        }
-
         function printAll() {
-            printArea.innerHTML = ""; students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
-            setTimeout(() => { students.forEach(s => renderQRs(s.id)); window.print(); }, 200);
+            printArea.innerHTML = "";
+            students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            setTimeout(() => {
+                students.forEach(s => {
+                    new QRious({ element: document.getElementById('qr-and-' + s.id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work', size: 180 });
+                    new QRious({ element: document.getElementById('qr-ios-' + s.id), value: 'https://apps.apple.com/de/app/threema-work/id1105927783', size: 180 });
+                    new QRious({ element: document.getElementById('qr-vid-' + s.id), value: 'https://www.gms-goldberg.de/index.php/service/threema-work', size: 250 });
+                });
+                window.print();
+            }, 200);
         }
 
-        function downloadCSVChunk(start, end) {
+        function printClass(kl) {
+            const list = classesMap[kl];
+            printArea.innerHTML = "";
+            list.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            setTimeout(() => {
+                list.forEach(s => {
+                    new QRious({ element: document.getElementById('qr-and-' + s.id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work', size: 180 });
+                    new QRious({ element: document.getElementById('qr-ios-' + s.id), value: 'https://apps.apple.com/de/app/threema-work/id1105927783', size: 180 });
+                    new QRious({ element: document.getElementById('qr-vid-' + s.id), value: 'https://www.gms-goldberg.de/index.php/service/threema-work', size: 250 });
+                });
+                window.print();
+            }, 200);
+        }
+
+        function removePerson(idx) { students.splice(idx, 1); updateUI(); }
+
+        function downloadCSV(start, end) {
             let csv = "\uFEFFBenutzername,Passwort,Vorname,Nachname,Mitarbeiternummer,Berufsbezeichnung,Abteilung,E-Mail für App-Aktivierungslink,Tags\n";
-            const chunk = students.slice(start, end);
-            chunk.forEach(s => { 
+            students.slice(start, end).forEach(s => {
                 const isT = s.type === 'teacher';
-                csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT ? 'Lehrkraft' : 'Lernende'}","${isT ? '' : s.kl}","","${isT ? 'Lehrende' : 'SuS'}"\n`; 
+                csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT?'Lehrkraft':'Lernende'}","${isT?'':s.kl}","","${isT?'Lehrende':'SuS'}"\n`;
             });
             const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `Threema_Export_${start+1}_bis_${end}.csv`; a.click();
+            a.download = `Threema_Import_${appMode}_${start+1}_${end}.csv`; a.click();
         }
     </script>
 </body>
