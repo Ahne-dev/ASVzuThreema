@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASV ➔ Threema: Schul-Konverter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #020617; 
+            margin: 0;
+            color: #f8fafc;
+        }
+
+        .glow-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+
+        /* PRINT SETTINGS */
+        @media print {
+            @page { 
+                size: A4 portrait; 
+                margin: 0; 
+            }
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+            
+            .print-container { display: block !important; }
+            
+            .letter-page { 
+                width: 210mm; 
+                height: 296.5mm; 
+                padding: 15mm 20mm; 
+                margin: 0 !important; 
+                page-break-after: always; 
+                box-sizing: border-box;
+                border: none !important;
+                display: flex !important;
+                flex-direction: column;
+                background: white !important;
+                color: black !important;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .letter-page * { 
+                border-color: black !important; 
+                color: black !important; 
+                background: transparent !important; 
+            }
+            .hervorhebung { 
+                border: 2.5px solid black !important; 
+                padding: 12px !important; 
+                margin: 10px 0 !important; 
+                background: #f5f5f5 !important;
+            }
+            .logo-img { max-height: 50px; width: auto; display: block; }
+        }
+
+        .drop-zone.active { border-color: #10b981; background-color: rgba(6, 78, 59, 0.2); }
+        
+        .letter-page {
+            background: white;
+            color: black;
+            font-size: 10.5pt;
+            line-height: 1.35;
+            border: 1px solid #ddd;
+            margin: 20px auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .header-table { width: 100%; margin-bottom: 5mm; border-bottom: 1px solid black; padding-bottom: 2mm; }
+        .logo-box { min-width: 110px; height: 50px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .logo-placeholder { border: 1.5px solid black; font-weight: bold; font-size: 7.5pt; text-align: center; width: 110px; height: 50px; display: flex; align-items: center; justify-content: center; }
+        
+        .cred-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        .cred-table td { padding: 4px 0; border-bottom: 1px solid #eee; }
+        .cred-label { font-weight: bold; width: 160px; }
+        
+        .qr-wrap { display: flex; justify-content: space-around; margin: 15px 0; text-align: center; }
+        .qr-wrap canvas { width: 100px; height: 100px; border: 1px solid black; padding: 4px; }
+
+        .safe-box { border: 2.5px solid black; padding: 12px; margin-top: 15px; }
+        .input-line { border-bottom: 2px solid black; height: 26px; margin-top: 4px; width: 85%; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-content {
+            background: #1e293b;
+            border: 1px solid #334155;
+            max-width: 440px;
+            width: 100%;
+            border-radius: 1rem;
+            padding: 2rem;
+        }
+
+        .tab-btn { transition: all 0.2s ease; }
+        .tab-btn.active { color: white; background: #059669; }
+
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            padding-top: 0.5rem;
+            min-width: 260px;
+            z-index: 100;
+        }
+        .group:hover .dropdown-menu { display: block; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto no-print">
+        <header class="mb-8 flex flex-col lg:flex-row justify-between items-center gap-6">
+            <div class="flex items-center gap-4">
+                <div class="bg-emerald-600 p-3 rounded-2xl shadow-lg">
+                    <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-white tracking-tight">ASV ➔ Threema Work</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-emerald-400 font-bold text-[10px] uppercase tracking-wider">GitHub Version</span>
+                        <div class="h-1 w-1 bg-slate-600 rounded-full"></div>
+                        <span id="currentModeLabel" class="text-slate-400 font-bold text-[10px] uppercase tracking-wider">Modus: Schüler</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-2xl border border-slate-800">
+                <button onclick="switchMode('student')" id="tabStudent" class="tab-btn active px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Schüler (ASV)</button>
+                <button onclick="switchMode('teacher')" id="tabTeacher" class="tab-btn px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white transition-all">Lehrer (Manuell)</button>
+            </div>
+            
+            <div id="actionButtons" class="hidden flex items-center gap-2">
+                <div class="relative group">
+                    <button class="bg-indigo-700 hover:bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center transition-all shadow-lg border border-indigo-500/30">
+                        Export & Druck
+                        <svg class="w-3 h-3 ml-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div class="dropdown-menu">
+                        <div id="exportMenuContent" class="bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden max-h-[70vh] overflow-y-auto"></div>
+                    </div>
+                </div>
+
+                <button onclick="showChangeModal('reset')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-5 py-2.5 rounded-xl font-bold flex items-center transition-all border border-slate-700">
+                    Datei wechseln
+                </button>
+            </div>
+        </header>
+
+        <!-- Schüler Upload -->
+        <div id="studentInputArea" class="block">
+            <div id="dropZone" class="glow-card rounded-3xl p-12 text-center cursor-pointer border-2 border-dashed border-slate-700 hover:border-emerald-500 transition-all group">
+                <input type="file" id="fileInput" class="hidden" accept=".xlsx, .xls, .csv">
+                <div class="flex flex-col items-center">
+                    <svg class="w-10 h-10 text-emerald-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                    <p class="text-xl font-bold text-white mb-1">ASV-Export laden</p>
+                    <p class="text-slate-400 text-xs">Excel oder CSV hierher ziehen</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lehrer Manuell -->
+        <div id="teacherInputArea" class="hidden">
+            <div class="glow-card rounded-3xl p-8 border border-slate-800 shadow-xl">
+                <h2 class="text-lg font-bold text-white mb-6">Lehrkraft manuell hinzufügen</h2>
+                <form onsubmit="event.preventDefault(); addManualTeacher();" class="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                    <input type="text" id="teacherVN" placeholder="Vorname" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-indigo-500">
+                    <input type="text" id="teacherNN" placeholder="Nachname" class="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-white outline-none focus:border-indigo-500">
+                    <div class="md:col-span-2 flex justify-end mt-4">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-6 py-2.5 rounded-xl">Hinzufügen</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Preview -->
+        <div id="previewContainer" class="hidden mt-8 space-y-6">
+            <div id="classButtonsContainer" class="glow-card rounded-2xl p-6 border-l-4 border-l-indigo-500">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Klassenweise drucken</h3>
+                <div id="classButtons" class="flex flex-wrap gap-2"></div>
+            </div>
+
+            <div class="glow-card rounded-2xl border border-slate-800 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-900/40 flex justify-between items-center">
+                    <h3 class="font-bold text-sm text-white">Datenvorschau (<span id="countLabel">0</span> Personen)</h3>
+                </div>
+                <div class="overflow-x-auto max-h-[450px]">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-950 text-slate-500 uppercase sticky top-0">
+                            <tr>
+                                <th class="px-4 py-3 text-center">#</th>
+                                <th class="px-6 py-3">Username</th>
+                                <th class="px-6 py-3">Name</th>
+                                <th class="px-6 py-3" id="thKlasse">Klasse</th>
+                                <th class="px-6 py-3">Passwort</th>
+                                <th class="px-6 py-3 no-print">Aktion</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="changeModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-bold text-white mb-4">Daten wirklich löschen?</h3>
+            <p id="modalText" class="text-slate-400 text-sm mb-8">Alle bisher generierten Zugangsdaten gehen verloren.</p>
+            <div class="flex gap-3">
+                <button id="confirmBtn" class="flex-1 bg-red-600 text-white font-bold py-2.5 rounded-xl">Ja, löschen</button>
+                <button onclick="closeModal()" class="flex-1 bg-slate-700 text-slate-200 font-bold py-2.5 rounded-xl">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="printArea" class="hidden print-container"></div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropZone = document.getElementById('dropZone');
+        const previewContainer = document.getElementById('previewContainer');
+        const actionButtons = document.getElementById('actionButtons');
+        const printArea = document.getElementById('printArea');
+        const classButtonsContainer = document.getElementById('classButtons');
+        const changeModal = document.getElementById('changeModal');
+        const tableBody = document.getElementById('tableBody');
+        const countLabel = document.getElementById('countLabel');
+        const exportMenuContent = document.getElementById('exportMenuContent');
+        const studentInputArea = document.getElementById('studentInputArea');
+        const teacherInputArea = document.getElementById('teacherInputArea');
+        const tabStudent = document.getElementById('tabStudent');
+        const tabTeacher = document.getElementById('tabTeacher');
+        const currentModeLabel = document.getElementById('currentModeLabel');
+
+        let students = [];
+        let classesMap = {};
+        let appMode = 'student'; 
+        let usedUsernames = new Set();
+        const CHUNK_SIZE = 80;
+
+        // UI Listeners
+        dropZone.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
+        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
+        dropZone.ondragleave = () => dropZone.classList.remove('active');
+        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); e.dataTransfer.files.length > 0 && handleFile(e.dataTransfer.files[0]); };
+
+        function switchMode(newMode) {
+            if (appMode === newMode) return;
+            if (students.length > 0) showChangeModal('switch', newMode);
+            else executeSwitch(newMode);
+        }
+
+        function executeSwitch(newMode) {
+            appMode = newMode; students = []; usedUsernames = new Set(); classesMap = {};
+            tabStudent.classList.toggle('active', newMode === 'student');
+            tabTeacher.classList.toggle('active', newMode === 'teacher');
+            studentInputArea.classList.toggle('hidden', newMode !== 'student');
+            teacherInputArea.classList.toggle('hidden', newMode !== 'teacher');
+            currentModeLabel.innerText = newMode === 'student' ? 'Modus: Schüler' : 'Modus: Lehrer';
+            document.getElementById('thKlasse').innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
+            if (newMode === 'student') studentInputArea.classList.remove('hidden');
+            previewContainer.classList.add('hidden');
+            actionButtons.classList.add('hidden');
+            tableBody.innerHTML = "";
+            countLabel.innerText = "0";
+            fileInput.value = "";
+        }
+
+        function showChangeModal(type, targetMode = null) {
+            changeModal.style.display = 'flex';
+            document.getElementById('confirmBtn').onclick = () => {
+                closeModal();
+                if (type === 'reset') location.reload();
+                if (type === 'switch') executeSwitch(targetMode);
+            };
+        }
+
+        function closeModal() { changeModal.style.display = 'none'; }
+
+        function handleFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            const isExcel = /\.(xlsx|xls)$/i.test(file.name);
+            reader.onload = (e) => {
+                let data;
+                try {
+                    if (isExcel) {
+                        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                        data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+                    } else {
+                        const content = e.target.result;
+                        const delimiter = content.includes(';') ? ';' : ',';
+                        data = content.split(/\r?\n/).filter(l => l.trim() !== "").map(l => l.split(delimiter).map(c => c.trim().replace(/"/g, '')));
+                    }
+                    processData(data);
+                } catch (err) { alert("Fehler beim Laden."); }
+            };
+            isExcel ? reader.readAsArrayBuffer(file) : reader.readAsText(file);
+        }
+
+        function addManualTeacher() {
+            const vn = document.getElementById('teacherVN').value.trim();
+            const nn = document.getElementById('teacherNN').value.trim();
+            if (!vn || !nn) return;
+            students.push(createPersonObject(vn, nn, ""));
+            updatePreview();
+            document.getElementById('teacherVN').value = "";
+            document.getElementById('teacherNN').value = "";
+            document.getElementById('teacherVN').focus();
+        }
+
+        function createPersonObject(vn, nn, kl) {
+            let vnC = vn.replace(/\s+/g, '');
+            let nnC = nn.replace(/\s+/g, '');
+            let user = `${vnC.substring(0,3).toLowerCase()}.${nnC.toLowerCase()}`;
+            if (usedUsernames.has(user)) {
+                user = `${vnC.toLowerCase()}.${nnC.toLowerCase()}`;
+                if (usedUsernames.has(user)) {
+                    let c = 1; while(usedUsernames.has(user + c)) c++; user += c;
+                }
+            }
+            usedUsernames.add(user);
+            let pass = ""; let nums = 0;
+            const alphabet = "abcdefghijkmnpqrstuvwxyz"; const zahlen = "123456789";
+            for(let j=0; j<10; j++) {
+                if (Math.random() < 0.35 && nums < 3) { pass += zahlen.charAt(Math.floor(Math.random() * 9)); nums++; }
+                else { pass += alphabet.charAt(Math.floor(Math.random() * 24)); }
+            }
+            return { vn, nn, kl, user, pass, id: `p-${Date.now()}-${Math.random()}`, type: appMode };
+        }
+
+        function processData(data) {
+            if (!data || data.length < 2) return;
+            const h = data[0].map(x => String(x).toLowerCase());
+            const idxVN = h.findIndex(x => /vornamen|rufname/i.test(x));
+            const idxNN = h.findIndex(x => /familienname|nachname/i.test(x));
+            const idxKL = h.findIndex(x => /klasse/i.test(x));
+            if (idxVN === -1 || idxNN === -1) return alert("Spalten fehlen.");
+            students = []; usedUsernames = new Set();
+            for (let i = 1; i < data.length; i++) {
+                if (!data[i][idxVN] || !data[i][idxNN]) continue;
+                students.push(createPersonObject(String(data[i][idxVN]), String(data[i][idxNN]), idxKL !== -1 ? String(data[i][idxKL]) : ""));
+            }
+            updatePreview();
+        }
+
+        function updatePreview() {
+            tableBody.innerHTML = ""; classesMap = {};
+            const isS = appMode === 'student';
+            students.forEach((s, idx) => {
+                if (s.kl) { if (!classesMap[s.kl]) classesMap[s.kl] = []; classesMap[s.kl].push(s); }
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-4 py-2 text-center text-slate-500 font-mono">${idx + 1}</td>
+                    <td class="px-6 py-2 font-bold text-emerald-400 font-mono">${s.user}</td>
+                    <td class="px-6 py-2">${s.vn} ${s.nn}</td>
+                    <td class="px-6 py-2 text-slate-500">${isS ? (s.kl || '-') : 'Lehrkraft'}</td>
+                    <td class="px-6 py-2 font-mono text-[10px]">${s.pass}</td>
+                    <td class="px-6 py-2 no-print"><button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400 p-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            classButtonsContainer.querySelector('#classButtons').innerHTML = "";
+            if (isS) {
+                document.getElementById('classButtonsContainer').classList.remove('hidden');
+                Object.keys(classesMap).sort().forEach(kl => {
+                    const btn = document.createElement('button');
+                    btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all";
+                    btn.innerHTML = `<svg class="w-3 h-3 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2-2h6a2 2 0 002 2v4a2 2 0 00-2 2z"></path></svg> ${kl}`;
+                    btn.onclick = () => printSpecificClass(kl);
+                    classButtonsContainer.querySelector('#classButtons').appendChild(btn);
+                });
+            } else classButtonsContainer.classList.add('hidden');
+
+            countLabel.innerText = students.length;
+            previewContainer.classList.toggle('hidden', students.length === 0);
+            actionButtons.classList.toggle('hidden', students.length === 0);
+            if (isS && students.length > 0) studentInputArea.classList.add('hidden');
+            
+            updateExportMenu();
+            printArea.innerHTML = "";
+            students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            setTimeout(() => students.forEach(s => renderQRs(s.id)), 100);
+        }
+
+        function updateExportMenu() {
+            exportMenuContent.innerHTML = "";
+            const printBtn = document.createElement('button');
+            printBtn.className = "w-full text-left px-5 py-3 text-sm hover:bg-blue-600/20 text-blue-100 border-b border-slate-700/50 flex items-center";
+            printBtn.innerHTML = `Alle Briefe drucken`;
+            printBtn.onclick = printAll;
+            exportMenuContent.appendChild(printBtn);
+
+            const csvHead = document.createElement('div');
+            csvHead.className = "px-5 py-2 bg-slate-900/50 text-[10px] uppercase font-bold text-slate-500 tracking-widest border-b border-slate-700/50";
+            csvHead.innerText = "Threema Import-Listen (CSV)";
+            exportMenuContent.appendChild(csvHead);
+
+            if (students.length <= CHUNK_SIZE) {
+                exportMenuContent.appendChild(createCSVButton("Gesamt-CSV laden", 0, students.length));
+            } else {
+                for (let i = 0; i < students.length; i += CHUNK_SIZE) {
+                    const start = i + 1; const end = Math.min(i + CHUNK_SIZE, students.length);
+                    exportMenuContent.appendChild(createCSVButton(`Teil ${Math.floor(i / CHUNK_SIZE) + 1} (${start}-${end})`, i, end));
+                }
+            }
+        }
+
+        function createCSVButton(text, start, end) {
+            const btn = document.createElement('button');
+            btn.className = "w-full text-left px-5 py-3 text-sm hover:bg-emerald-600/20 text-emerald-100 border-b border-slate-700/50 last:border-0 flex items-center";
+            btn.innerHTML = text;
+            btn.onclick = () => downloadCSVChunk(start, end);
+            return btn;
+        }
+
+        function removePerson(index) {
+            const removed = students.splice(index, 1)[0];
+            usedUsernames.delete(removed.user);
+            updatePreview();
+        }
+
+        function generateLetterHTML(s) {
+            const isT = s.type === 'teacher';
+            return `
+                <div class="letter-page" id="${s.id}-p1">
+                    <table class="header-table">
+                        <tr>
+                            <td style="font-size: 8pt;"><strong>GEMEINSCHAFTSSCHULE GOLDBERG</strong><br>Goldbergstraße 34, 71065 Sindelfingen</td>
+                            <td align="right">
+                                <div class="logo-box">
+                                    <img src="logo.png" class="logo-img" onerror="this.outerHTML='<div class=\'logo-placeholder\'>GMS GOLDBERG</div>'">
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    <p style="margin-top: 5mm;">Liebe ${isT ? 'Mitarbeitende, liebe Lehrende' : 'Lernende'},</p>
+                    <p>im Rahmen deiner Tätigkeit für die Schule erhältst du Zugriff auf <strong>Threema Work</strong>.</p>
+                    <div class="credentials-box" style="border: 2px solid black; padding: 15px; margin: 15px 0;">
+                        <table class="cred-table">
+                            <tr><td class="cred-label">Vorname:</td><td>${s.vn}</td></tr>
+                            <tr><td class="cred-label">Nachname:</td><td>${s.nn}</td></tr>
+                            ${isT ? '' : `<tr><td class="cred-label">Klasse:</td><td>${s.kl}</td></tr>`}
+                            <tr style="border-top: 1.5px solid black;"><td class="cred-label">Benutzername:</td><td><strong>${s.user}</strong></td></tr>
+                            <tr><td class="cred-label">Passwort:</td><td><strong>${s.pass}</strong></td></tr>
+                        </table>
+                    </div>
+                    <div class="qr-wrap"><div><canvas id="qr-and-${s.id}"></canvas><br><small>Android</small></div><div><canvas id="qr-ios-${s.id}"></canvas><br><small>iOS</small></div></div>
+                </div>
+                <div class="letter-page" id="${s.id}-p2">
+                    <table class="header-table"><tr><td><strong>GEMEINSCHAFTSSCHULE GOLDBERG</strong></td><td align="right">EINRICHTUNGSHILFE</td></tr></table>
+                    <h3 style="margin-top: 10mm; font-weight: bold;">Einrichtung von Threema Work:</h3>
+                    <ol style="margin-left: 20px; margin-top: 6mm;"><li>App öffnen und mit den Daten von Seite 1 anmelden.</li><li>Persönliche Threema ID erstellen.</li><li><strong>Threema Safe</strong> in den Einstellungen aktivieren!</li></ol>
+                    <div class="safe-box hervorhebung" style="background: #fafafa; border: 3px solid black; margin-top: 15mm; padding: 25px;">
+                        <strong>WICHTIG (NOTIEREN):</strong><br><br>Deine Threema ID:<br><div class="input-line"></div><br>Dein Threema Safe Passwort:<br><div class="input-line"></div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQRs(id) {
+            new QRious({ element: document.getElementById('qr-and-' + id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work&hl=de-AT&pli=1', size: 180 });
+            new QRious({ element: document.getElementById('qr-ios-' + id), value: 'https://apps.apple.com/de/app/threema-work-f%C3%BCr-unternehmen/id1105927783', size: 180 });
+        }
+
+        function printSpecificClass(kl) {
+            const list = classesMap[kl]; printArea.innerHTML = "";
+            list.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            setTimeout(() => { list.forEach(s => renderQRs(s.id)); window.print(); }, 100);
+        }
+
+        function printAll() {
+            printArea.innerHTML = ""; students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
+            setTimeout(() => { students.forEach(s => renderQRs(s.id)); window.print(); }, 200);
+        }
+
+        function downloadCSVChunk(start, end) {
+            let csv = "\uFEFFBenutzername,Passwort,Vorname,Nachname,Mitarbeiternummer,Berufsbezeichnung,Abteilung,E-Mail für App-Aktivierungslink,Tags\n";
+            const chunk = students.slice(start, end);
+            chunk.forEach(s => { 
+                const isT = s.type === 'teacher';
+                csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT ? 'Lehrkraft' : 'Lernende'}","${isT ? '' : s.kl}","","${isT ? 'Lehrende' : 'SuS'}"\n`; 
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `Threema_Export_${start+1}_bis_${end}.csv`; a.click();
+        }
+    </script>
+</body>
+</html>
