@@ -120,7 +120,7 @@
                 <div>
                     <h1 class="text-3xl font-black text-white tracking-tight">ASV ➔ Threema Work</h1>
                     <div class="flex items-center gap-3 mt-2">
-                        <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-widest">GMS Goldberg Edition v12.4</span>
+                        <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-widest">GMS Goldberg Edition v12.5</span>
                         <div class="h-1.5 w-1.5 bg-slate-700 rounded-full"></div>
                         <span id="currentModeLabel" class="text-slate-500 font-bold text-[11px] uppercase tracking-widest">Modus: Schüler</span>
                     </div>
@@ -164,7 +164,7 @@
         <div id="teacherInputArea" class="hidden">
             <div class="glow-card rounded-3xl p-10 border border-slate-800 shadow-2xl">
                 <h2 class="text-xl font-bold text-white mb-8">Lehrkraft manuell hinzufügen</h2>
-                <form onsubmit="event.preventDefault(); addManualTeacher();" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                <form id="teacherForm" onsubmit="event.preventDefault(); addManualTeacher();" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                     <input type="text" id="teacherVN" placeholder="Vorname" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 outline-none transition-all">
                     <input type="text" id="teacherNN" placeholder="Nachname" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-5 py-3.5 text-white focus:border-indigo-500 outline-none transition-all">
                     <div class="md:col-span-2 flex justify-end">
@@ -194,7 +194,7 @@
                                 <th class="px-8 py-4 font-black">User</th>
                                 <th class="px-8 py-4 font-black">Name</th>
                                 <th class="px-8 py-4 font-black" id="thKlasse">Klasse</th>
-                                <th class="px-6 py-4 no-print text-center">Aktion</th>
+                                <th class="px-6 py-4 no-print text-center font-black">Aktion</th>
                             </tr>
                         </thead>
                         <tbody id="tableBody" class="divide-y divide-slate-800/60 text-slate-300"></tbody>
@@ -222,20 +222,8 @@
     <div id="printArea" class="hidden print-container"></div>
 
     <script>
-        const fileInput = document.getElementById('fileInput');
-        const dropZone = document.getElementById('dropZone');
-        const previewContainer = document.getElementById('previewContainer');
-        const actionButtons = document.getElementById('actionButtons');
-        const printArea = document.getElementById('printArea');
-        const classButtonsContainer = document.getElementById('classButtons');
-        const tableBody = document.getElementById('tableBody');
-        const countLabel = document.getElementById('countLabel');
-        const exportMenuContent = document.getElementById('exportMenuContent');
-        const studentInputArea = document.getElementById('studentInputArea');
-        const teacherInputArea = document.getElementById('teacherInputArea');
-        const tabStudent = document.getElementById('tabStudent');
-        const tabTeacher = document.getElementById('tabTeacher');
-        const changeModal = document.getElementById('changeModal');
+        // DOM-Elemente sicher laden
+        let fileInput, dropZone, previewContainer, actionButtons, printArea, classButtonsContainer, tableBody, countLabel, exportMenuContent, studentInputArea, teacherInputArea, tabStudent, tabTeacher, changeModal;
 
         let students = [];
         let classesMap = {};
@@ -243,24 +231,44 @@
         let usedUsernames = new Set();
         const CHUNK_SIZE = 80;
 
-        // Warnung vor dem Schließen/Aktualisieren (F5 Schutz)
-        window.addEventListener('beforeunload', (e) => {
-            if (students.length > 0) {
-                e.preventDefault();
-                e.returnValue = ''; // Standard für moderne Browser
+        document.addEventListener('DOMContentLoaded', () => {
+            fileInput = document.getElementById('fileInput');
+            dropZone = document.getElementById('dropZone');
+            previewContainer = document.getElementById('previewContainer');
+            actionButtons = document.getElementById('actionButtons');
+            printArea = document.getElementById('printArea');
+            classButtonsContainer = document.getElementById('classButtons');
+            tableBody = document.getElementById('tableBody');
+            countLabel = document.getElementById('countLabel');
+            exportMenuContent = document.getElementById('exportMenuContent');
+            studentInputArea = document.getElementById('studentInputArea');
+            teacherInputArea = document.getElementById('teacherInputArea');
+            tabStudent = document.getElementById('tabStudent');
+            tabTeacher = document.getElementById('tabTeacher');
+            changeModal = document.getElementById('changeModal');
+
+            // Listeners initialisieren
+            if (dropZone) {
+                dropZone.onclick = () => fileInput.click();
+                dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
+                dropZone.ondragleave = () => dropZone.classList.remove('active');
+                dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); if(e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]); };
             }
+            if (fileInput) {
+                fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
+            }
+
+            // F5 Schutz
+            window.addEventListener('beforeunload', (e) => {
+                if (students.length > 0) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
         });
 
-        // UI Handlers
-        dropZone.onclick = () => fileInput.click();
-        fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
-        dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('active'); };
-        dropZone.ondragleave = () => dropZone.classList.remove('active');
-        dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('active'); handleFile(e.dataTransfer.files[0]); };
-
         function switchMode(newMode) {
-            if (appMode === newMode) return; // Schutz: Nichts tun wenn man auf den aktiven Tab klickt
-            
+            if (appMode === newMode) return;
             if (students.length > 0) {
                 showChangeModal('switch', newMode);
             } else {
@@ -273,19 +281,27 @@
             students = [];
             usedUsernames = new Set();
             classesMap = {};
+            
             tabStudent.classList.toggle('active', newMode === 'student');
             tabTeacher.classList.toggle('active', newMode === 'teacher');
             studentInputArea.classList.toggle('hidden', newMode !== 'student');
             teacherInputArea.classList.toggle('hidden', newMode !== 'teacher');
             previewContainer.classList.add('hidden');
             actionButtons.classList.add('hidden');
-            tableBody.innerHTML = "";
-            countLabel.innerText = "0";
-            fileInput.value = "";
-            document.getElementById('thKlasse').innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
+            
+            if(tableBody) tableBody.innerHTML = "";
+            if(countLabel) countLabel.innerText = "0";
+            if(fileInput) fileInput.value = "";
+            
+            const th = document.getElementById('thKlasse');
+            if(th) th.innerText = newMode === 'student' ? 'Klasse' : 'Rolle';
+            
+            const label = document.getElementById('currentModeLabel');
+            if(label) label.innerText = newMode === 'student' ? 'Modus: Schüler' : 'Modus: Lehrer';
         }
 
         function showChangeModal(type, targetMode = null) {
+            if(!changeModal) return;
             changeModal.style.display = 'flex';
             const modalText = document.getElementById('modalText');
             
@@ -303,10 +319,11 @@
         }
 
         function closeModal() {
-            changeModal.style.display = 'none';
+            if(changeModal) changeModal.style.display = 'none';
         }
 
         function handleFile(file) {
+            if(!file) return;
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -314,15 +331,19 @@
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const data = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: "" });
                     processData(data);
-                } catch (err) { alert("Fehler beim Lesen der Excel-Datei."); }
+                } catch (err) { 
+                    alert("Kritischer Fehler beim Einlesen: " + err.message); 
+                }
             };
+            reader.onerror = () => alert("Die Datei konnte nicht gelesen werden.");
             reader.readAsArrayBuffer(file);
         }
 
         function processData(data) {
+            if(!data || data.length === 0) return;
             let idxVN = -1, idxNN = -1, idxKL = -1, headerIdx = -1;
             
-            for (let i = 0; i < Math.min(data.length, 20); i++) {
+            for (let i = 0; i < Math.min(data.length, 25); i++) {
                 const row = data[i].map(c => String(c || "").toLowerCase().trim());
                 idxVN = row.findIndex(x => ["vornamen", "vorname", "rufname"].some(k => x.includes(k)));
                 idxNN = row.findIndex(x => ["familienname", "nachname", "name"].some(k => x.includes(k)));
@@ -330,7 +351,7 @@
                 if (idxVN !== -1 && idxNN !== -1) { headerIdx = i; break; }
             }
 
-            if (headerIdx === -1) return alert("Spalten 'Vorname' und 'Nachname' nicht gefunden.");
+            if (headerIdx === -1) return alert("Erforderliche Spalten ('Vornamen' und 'Familienname') nicht gefunden. Bitte prüfen Sie die Excel-Datei.");
 
             students = []; usedUsernames = new Set();
             for (let i = headerIdx + 1; i < data.length; i++) {
@@ -343,13 +364,16 @@
         }
 
         function addManualTeacher() {
-            const vn = document.getElementById('teacherVN').value.trim();
-            const nn = document.getElementById('teacherNN').value.trim();
+            const vnElem = document.getElementById('teacherVN');
+            const nnElem = document.getElementById('teacherNN');
+            const vn = vnElem.value.trim();
+            const nn = nnElem.value.trim();
             if (vn && nn) {
                 students.push(createPerson(vn, nn, ""));
                 updateUI();
-                document.getElementById('teacherVN').value = "";
-                document.getElementById('teacherNN').value = "";
+                vnElem.value = "";
+                nnElem.value = "";
+                vnElem.focus();
             }
         }
 
@@ -368,48 +392,65 @@
                 else pass += abc.charAt(Math.floor(Math.random() * 24));
             }
 
-            return { vn, nn, kl, user, pass, id: `p-${Date.now()}-${Math.random()}`, type: appMode };
+            return { vn, nn, kl, user, pass, id: `p-${Date.now()}-${Math.random()}`.replace(/\./g,''), type: appMode };
         }
 
         function updateUI() {
+            if(!tableBody) return;
             tableBody.innerHTML = "";
             classesMap = {};
+            
             students.forEach((s, idx) => {
-                if (s.kl) { if (!classesMap[s.kl]) classesMap[s.kl] = []; classesMap[s.kl].push(s); }
+                if (s.kl) { 
+                    if (!classesMap[s.kl]) classesMap[s.kl] = []; 
+                    classesMap[s.kl].push(s); 
+                }
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-slate-800/30 transition-colors";
-                tr.innerHTML = `<td class="px-6 py-3 text-center text-slate-500 font-mono text-xs">${idx + 1}</td><td class="px-8 py-3 font-bold text-emerald-400 font-mono">${s.user}</td><td class="px-8 py-3 text-white font-medium">${s.vn} ${s.nn}</td><td class="px-8 py-3 text-slate-500">${s.type==='student' ? (s.kl || '-') : 'Lehrkraft'}</td><td class="px-6 py-3 no-print text-center"><button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td>`;
+                tr.innerHTML = `
+                    <td class="px-6 py-3 text-center text-slate-500 font-mono text-xs">${idx + 1}</td>
+                    <td class="px-8 py-3 font-bold text-emerald-400 font-mono">${s.user}</td>
+                    <td class="px-8 py-3 text-white font-medium">${s.vn} ${s.nn}</td>
+                    <td class="px-8 py-3 text-slate-500">${s.type==='student' ? (s.kl || '-') : 'Lehrkraft'}</td>
+                    <td class="px-6 py-3 no-print text-center">
+                        <button onclick="removePerson(${idx})" class="text-slate-600 hover:text-red-400 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </td>`;
                 tableBody.appendChild(tr);
             });
 
-            // Buttons
-            const btnWrap = document.getElementById('classButtons');
-            btnWrap.innerHTML = "";
-            if (appMode === 'student') {
-                Object.keys(classesMap).sort().forEach(kl => {
+            // Klassen-Buttons
+            if(classButtonsContainer) {
+                classButtonsContainer.innerHTML = "";
+                if (appMode === 'student') {
+                    Object.keys(classesMap).sort().forEach(kl => {
+                        const btn = document.createElement('button');
+                        btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 transition-all";
+                        btn.innerHTML = kl;
+                        btn.onclick = () => printClass(kl);
+                        classButtonsContainer.appendChild(btn);
+                    });
+                }
+            }
+
+            // Export Menü
+            if(exportMenuContent) {
+                exportMenuContent.innerHTML = `<button onclick="printAll()" class="w-full text-left px-6 py-4 text-sm font-bold hover:bg-indigo-600/10 text-indigo-100 border-b border-slate-700/50 transition-colors">Alle Briefe drucken</button>`;
+                for (let i = 0; i < students.length; i += CHUNK_SIZE) {
+                    const end = Math.min(i + CHUNK_SIZE, students.length);
                     const btn = document.createElement('button');
-                    btn.className = "bg-slate-800 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold border border-slate-700 transition-all";
-                    btn.innerHTML = kl;
-                    btn.onclick = () => printClass(kl);
-                    btnWrap.appendChild(btn);
-                });
+                    btn.className = "w-full text-left px-6 py-4 text-sm hover:bg-emerald-600/10 text-emerald-100 border-b border-slate-700/50 last:border-0 transition-colors";
+                    btn.innerText = `CSV-Importliste ${Math.floor(i/CHUNK_SIZE)+1} (${i+1}-${end})`;
+                    btn.onclick = () => downloadCSV(i, end);
+                    exportMenuContent.appendChild(btn);
+                }
             }
 
-            // Export Menu
-            exportMenuContent.innerHTML = `<button onclick="printAll()" class="w-full text-left px-6 py-4 text-sm font-bold hover:bg-indigo-600/10 text-indigo-100 border-b border-slate-700/50">Alle Briefe drucken</button>`;
-            for (let i = 0; i < students.length; i += CHUNK_SIZE) {
-                const end = Math.min(i + CHUNK_SIZE, students.length);
-                const btn = document.createElement('button');
-                btn.className = "w-full text-left px-6 py-4 text-sm hover:bg-emerald-600/10 text-emerald-100 border-b border-slate-700/50 last:border-0";
-                btn.innerText = `CSV Teil ${Math.floor(i/CHUNK_SIZE)+1} (${i+1}-${end})`;
-                btn.onclick = () => downloadCSV(i, end);
-                exportMenuContent.appendChild(btn);
-            }
-
-            countLabel.innerText = students.length;
-            previewContainer.classList.toggle('hidden', students.length === 0);
-            actionButtons.classList.toggle('hidden', students.length === 0);
-            if (appMode === 'student' && students.length > 0) studentInputArea.classList.add('hidden');
+            if(countLabel) countLabel.innerText = students.length;
+            if(previewContainer) previewContainer.classList.toggle('hidden', students.length === 0);
+            if(actionButtons) actionButtons.classList.toggle('hidden', students.length === 0);
+            if (appMode === 'student' && students.length > 0 && studentInputArea) studentInputArea.classList.add('hidden');
         }
 
         function generateLetterHTML(s) {
@@ -430,9 +471,9 @@
                             </td>
                         </tr>
                     </table>
-                    <p style="margin-top: 3mm; font-weight: 600; font-size: 11pt;">Liebe/r ${isT ? 'Mitarbeitende/r' : 'Lernende/r'},</p>
-                    <p style="margin-top: 2mm;">für deine schulische Kommunikation erhältst du hiermit Zugriff auf <strong>Threema Work</strong>.</p>
-                    <div style="border: 2.5px solid black; padding: 12px; margin: 10px 0; background: #fcfcfc;">
+                    <p style="margin-top: 5mm; font-weight: 600; font-size: 11pt;">Liebe/r ${isT ? 'Mitarbeitende/r' : 'Lernende/r'},</p>
+                    <p style="margin-top: 3mm;">für deine schulische Kommunikation erhältst du hiermit Zugriff auf <strong>Threema Work</strong>.</p>
+                    <div style="border: 2.5px solid black; padding: 15px; margin: 15px 0; background: #fcfcfc;">
                         <table class="cred-table">
                             <tr><td class="cred-label">Vorname:</td><td>${s.vn}</td></tr>
                             <tr><td class="cred-label">Nachname:</td><td>${s.nn}</td></tr>
@@ -441,7 +482,7 @@
                             <tr><td class="cred-label">Passwort:</td><td><strong>${s.pass}</strong></td></tr>
                         </table>
                     </div>
-                    <p style="text-align: center; font-size: 9pt; margin-top: 5mm;"><strong>INSTALLATION DER APP:</strong></p>
+                    <p style="text-align: center; font-size: 9pt; margin-top: 8mm;"><strong>INSTALLATION DER APP:</strong></p>
                     <div class="qr-wrap">
                         <div><canvas id="qr-and-${s.id}"></canvas><br><small><strong>Android</strong></small></div>
                         <div><canvas id="qr-ios-${s.id}"></canvas><br><small><strong>iOS (iPhone)</strong></small></div>
@@ -470,7 +511,7 @@
                     </div>
                     
                     <div style="margin-top: auto; padding-top: 5mm; border-top: 2px solid black; display: flex; align-items: center; gap: 25px;">
-                        <canvas id="qr-vid-${s.id}" style="width: 130px; height: 130px; border: 1.5px solid black; padding: 4px;"></canvas>
+                        <canvas id="qr-vid-${s.id}" style="width: 140px; height: 140px; border: 1.5px solid black; padding: 4px;"></canvas>
                         <div style="font-size: 10pt; line-height: 1.4;">
                             <strong style="text-transform: uppercase; font-size: 11pt;">Video-Anleitungen:</strong><br>
                             Scanne diesen Code für Erklärvideos zur Einrichtung und Wiederherstellung auf unserer Webseite.<br>
@@ -482,43 +523,58 @@
         }
 
         function printAll() {
+            if(!printArea) return;
             printArea.innerHTML = "";
             students.forEach(s => printArea.innerHTML += generateLetterHTML(s));
-            setTimeout(() => {
-                students.forEach(s => {
-                    new QRious({ element: document.getElementById('qr-and-' + s.id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work', size: 180 });
-                    new QRious({ element: document.getElementById('qr-ios-' + s.id), value: 'https://apps.apple.com/de/app/threema-work/id1105927783', size: 180 });
-                    new QRious({ element: document.getElementById('qr-vid-' + s.id), value: 'https://www.gms-goldberg.de/index.php/service/threema-work', size: 250 });
-                });
-                window.print();
-            }, 200);
+            processQRCodes(students);
         }
 
         function printClass(kl) {
+            if(!printArea) return;
             const list = classesMap[kl];
             printArea.innerHTML = "";
             list.forEach(s => printArea.innerHTML += generateLetterHTML(s));
-            setTimeout(() => {
-                list.forEach(s => {
-                    new QRious({ element: document.getElementById('qr-and-' + s.id), value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work', size: 180 });
-                    new QRious({ element: document.getElementById('qr-ios-' + s.id), value: 'https://apps.apple.com/de/app/threema-work/id1105927783', size: 180 });
-                    new QRious({ element: document.getElementById('qr-vid-' + s.id), value: 'https://www.gms-goldberg.de/index.php/service/threema-work', size: 250 });
-                });
-                window.print();
-            }, 200);
+            processQRCodes(list);
         }
 
-        function removePerson(idx) { students.splice(idx, 1); updateUI(); }
+        function processQRCodes(list) {
+            setTimeout(() => {
+                try {
+                    list.forEach(s => {
+                        const and = document.getElementById('qr-and-' + s.id);
+                        const ios = document.getElementById('qr-ios-' + s.id);
+                        const vid = document.getElementById('qr-vid-' + s.id);
+                        if(and) new QRious({ element: and, value: 'https://play.google.com/store/apps/details?id=ch.threema.app.work', size: 180 });
+                        if(ios) new QRious({ element: ios, value: 'https://apps.apple.com/de/app/threema-work/id1105927783', size: 180 });
+                        if(vid) new QRious({ element: vid, value: 'https://www.gms-goldberg.de/index.php/service/threema-work', size: 250 });
+                    });
+                    window.print();
+                } catch (e) {
+                    alert("Fehler beim Generieren der QR-Codes: " + e.message);
+                }
+            }, 300);
+        }
+
+        function removePerson(idx) { 
+            students.splice(idx, 1); 
+            updateUI(); 
+        }
 
         function downloadCSV(start, end) {
-            let csv = "\uFEFFBenutzername,Passwort,Vorname,Nachname,Mitarbeiternummer,Berufsbezeichnung,Abteilung,E-Mail für App-Aktivierungslink,Tags\n";
-            students.slice(start, end).forEach(s => {
-                const isT = s.type === 'teacher';
-                csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT?'Lehrkraft':'Lernende'}","${isT?'':s.kl}","","${isT?'Lehrende':'SuS'}"\n`;
-            });
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-            a.download = `Threema_Import_${appMode}_${start+1}_${end}.csv`; a.click();
+            try {
+                let csv = "\uFEFFBenutzername,Passwort,Vorname,Nachname,Mitarbeiternummer,Berufsbezeichnung,Abteilung,E-Mail für App-Aktivierungslink,Tags\n";
+                students.slice(start, end).forEach(s => {
+                    const isT = s.type === 'teacher';
+                    csv += `"${s.user}","${s.pass}","${s.vn}","${s.nn}","","${isT?'Lehrkraft':'Lernende'}","${isT?'':s.kl}","","${isT?'Lehrende':'SuS'}"\n`;
+                });
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const a = document.createElement('a'); 
+                a.href = URL.createObjectURL(blob);
+                a.download = `Threema_Import_${appMode}_Teil_${Math.floor(start/CHUNK_SIZE)+1}.csv`; 
+                a.click();
+            } catch (e) {
+                alert("Fehler beim Exportieren: " + e.message);
+            }
         }
     </script>
 </body>
